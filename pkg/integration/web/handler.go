@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/co0p/go-tls-watch/pkg/domain"
 	"github.com/co0p/go-tls-watch/pkg/usecases"
 )
 
@@ -14,8 +16,9 @@ type Handler struct {
 }
 
 type WebsiteInfoResponse struct {
-	Website string `json:"website"`
-	Valid   bool   `json:"valid"`
+	Website string    `json:"website"`
+	Valid   bool      `json:"valid"`
+	Expires time.Time `json:"expires"`
 }
 
 func (h *Handler) Handle() http.HandlerFunc {
@@ -38,19 +41,20 @@ func (h *Handler) Handle() http.HandlerFunc {
 		website := string(requestData)
 
 		// now do the validation
-		info, err := h.ValidateUsecase.Validate(website)
+		cert, err := h.ValidateUsecase.Validate(website)
 		if err != nil {
 			log.Println("failed validating website", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
+			cert = domain.Certificate{
+				Origin: website,
+			}
 		}
 
 		response := WebsiteInfoResponse{
-			Website: website,
-			Valid:   info.IsValid(),
+			Website: cert.Origin,
+			Valid:   cert.IsValid(),
+			Expires: cert.NotAfter,
 		}
 
-		log.Println("returning validationInfo", response)
 		js, _ := json.Marshal(response)
 		w.WriteHeader(http.StatusOK)
 		w.Write(js)

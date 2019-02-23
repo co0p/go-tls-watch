@@ -16,7 +16,7 @@ func main() {
 		port = "9991"
 	}
 
-	fetchClient := web.FetchClient{}
+	fetchClient := web.NewFetchClient()
 
 	validateUsecase := usecases.ValidateUsecase{Client: &fetchClient}
 
